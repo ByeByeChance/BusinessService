@@ -1,0 +1,34 @@
+{
+  "name": "decompress-microservice",
+  "version": "1.0.0",
+  "description": "文件解压缩微服务",
+  "main": "dist/main.js",
+  "scripts": {
+    "start": "node dist/main.js",
+    "start:dev": "nest start --watch",
+    "build": "nest build",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@nestjs/common": "^9.0.0",
+    "@nestjs/core": "^9.0.0",
+    "@nestjs/microservices": "^9.0.0",
+    "@nestjs/platform-express": "^9.0.0",
+    "adm-zip": "^0.5.10",
+    "etcd3": "^1.1.2",
+    "minio": "^8.0.6",
+    "reflect-metadata": "^0.1.13",
+    "rxjs": "^7.8.1",
+    "tar": "^6.1.14"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^9.0.0",
+    "@nestjs/schematics": "^9.0.0",
+    "@types/adm-zip": "^0.5.0",
+    "@types/node": "^18.0.0",
+    "@types/tar": "^6.1.5",
+    "typescript": "^4.7.4"
+  },
+  "author": "",
+  "license": "MIT"
+}

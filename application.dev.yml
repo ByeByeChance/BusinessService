@@ -1,0 +1,60 @@
+PORT: 9000
+PREFIX: api
+
+# 正常token2小时
+tokenExpire: 12
+# 刷新过期时间为7天
+refreshTokenExpire: 7
+
+# 默认密码
+defaultPassword: 123456
+
+# 数据库配置
+datasource:
+  driverName: mysql
+  host: localhost
+  port: 3306
+  database: business_service
+  username: root
+  password:
+  charset: utf8mb4
+  logging: true
+  synchronize: false
+
+# Minio配置
+MINIO_CONFIG:
+  MINIO_ENDPOINT: '10.168.1.128'
+  MINIO_PORT: 10062
+  MINIO_ACCESSKEY: 'minioadmin'
+  MINIO_SECRETKEY: 'Ldsw@1234'
+  MINIO_BUCKET: 'algorithm'
+  # 文件存储路径配置
+  STORAGE_PATHS:
+    ARCHIVE: 'archive/'
+    PICTURE: 'picture/'
+    IMAGE: 'image/'
+    ALGORITHM: 'algorithm/'
+    SAMPLE_GROUP: 'sampleGroup/'
+    MODEL: 'model/'
+    OTHER: 'other/'
+
+# Redis配置
+redis:
+  host: localhost
+  port: 6379
+  username: ''
+  password: ''
+  db: 0
+
+# 腾讯地图api
+lbsKey: LW7BZ-NB7C5--QNDSX-VCZVT-D7FQ4
+
+# 阿里oss存储(可直接使用)
+aliyunOss:
+  accessKeyId: ''
+  accessKeySecret: ''
+  endpointUrl: 'oss-cn-shenzhen'
+  bucketUrl: 'https://an-jia-shop.oss-cn-shenzhen.aliyuncs.com'
+  bucketName: 'an-jia-shop'
+  imgDefaultSize: 5
+  supportImgTypes: ['.png', '.jpg', '.gif', '.jpeg']

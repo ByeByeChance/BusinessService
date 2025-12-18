@@ -1,0 +1,208 @@
+import { Injectable } from '@nestjs/common';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as crypto from 'crypto';
+import {
+  ClientProxyFactory,
+  Transport,
+  ClientProxy,
+} from '@nestjs/microservices';
+import { ConfigService } from '@nestjs/config';
+
+@Injectable()
+export class MergeService {
+  private decompressClient: ClientProxy;
+  private readonly TEMP_DIR: string;
+
+  constructor(private readonly configService: ConfigService) {
+    this.TEMP_DIR = this.configService.get<string>('TEMP_DIR', '/tmp');
+    this.decompressClient = ClientProxyFactory.create({
+      transport: Transport.TCP,
+      options: {
+        port: this.configService.get('DECOMPRESS_SERVICE_PORT', 7777),
+      },
+    });
+  }
+
+  async mergeChunks(
+    resourceId: string,
+    chunkDir: string,
+    mergedFilePath: string,
+    filename: string,
+    originalFilename: string,
+    mimeType: string,
+    size: number,
+    md5: string,
+    chunkTotal: number,
+    chunkUploaded: number[],
+  ) {
+    // 检查是否所有分片都已上传
+    if (!chunkUploaded || !chunkTotal || chunkUploaded.length !== chunkTotal) {
+      throw new Error('分片未完全上传或配置错误');
+    }
+
+    try {
+      // 合并分片 - 使用流式合并避免阻塞Event Loop
+      await this.mergeAllChunks(chunkDir, mergedFilePath, chunkTotal);
+
+      // 验证合并后的文件大小
+      const mergedFileStats = await fs.promises.stat(mergedFilePath);
+      if (mergedFileStats.size !== size) {
+        throw new Error('文件合并失败，大小不匹配');
+      }
+
+      // 生成文件MD5进行校验
+      const fileMd5 = await this.generateFileMd5(mergedFilePath);
+      if (md5 && md5 !== fileMd5) {
+        throw new Error('文件校验失败，MD5不匹配');
+      }
+
+      // 解压缩文件（如果是压缩包）
+      let decompressResult = null;
+      if (this.isCompressedFile(filename)) {
+        // 确定解压缩目录
+        const baseDecompressDir = this.configService.get<string>(
+          'DECOMPRESS.BASE_DIR',
+          '/opt/decompressed',
+        );
+        const decompressDir = path.join(baseDecompressDir, resourceId);
+        decompressResult = await this.decompressFile(
+          mergedFilePath,
+          resourceId,
+          decompressDir,
+          filename,
+        );
+      }
+
+      // 返回合并结果
+      return {
+        success: true,
+        resourceId,
+        filename,
+        originalFilename,
+        mimeType,
+        size: mergedFileStats.size,
+        md5: fileMd5,
+        mergedFilePath,
+        decompressPath: decompressResult?.decompressPath || null,
+        message: '文件合并成功',
+      };
+    } catch (error) {
+      console.error('文件合并失败:', error);
+      throw error;
+    }
+  }
+
+  // 合并所有分片
+  private async mergeAllChunks(
+    chunkDir: string,
+    mergedFilePath: string,
+    chunkTotal: number,
+  ) {
+    // 创建可写流
+    const writeStream = fs.createWriteStream(mergedFilePath);
+
+    // 按顺序合并分片 - 使用流式处理
+    await new Promise((resolve, reject) => {
+      let currentChunk = 0;
+
+      // 处理单个分片
+      const processNextChunk = () => {
+        if (currentChunk >= chunkTotal) {
+          writeStream.end();
+          return;
+        }
+
+        const chunkPath = path.join(chunkDir, `chunk_${currentChunk}`);
+        const readStream = fs.createReadStream(chunkPath);
+
+        readStream.on('data', (data) => {
+          // 如果写入失败，销毁所有流
+          if (!writeStream.write(data)) {
+            readStream.pause();
+          }
+        });
+
+        readStream.on('end', () => {
+          currentChunk++;
+          processNextChunk();
+        });
+
+        readStream.on('error', (error) => {
+          console.error('读取分片失败:', error);
+          writeStream.destroy(error);
+        });
+      };
+
+      // 背压处理 - 当可写流准备好继续写入时恢复可读流
+      writeStream.on('drain', () => {
+        // 继续处理下一个分片
+        processNextChunk();
+      });
+
+      writeStream.on('finish', resolve);
+      writeStream.on('error', reject);
+
+      // 开始处理第一个分片
+      processNextChunk();
+    });
+  }
+
+  // 生成文件MD5
+  private async generateFileMd5(filePath: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const hash = crypto.createHash('md5');
+      const stream = fs.createReadStream(filePath);
+
+      stream.on('data', (data) => {
+        hash.update(data as crypto.BinaryLike);
+      });
+
+      stream.on('end', () => {
+        resolve(hash.digest('hex'));
+      });
+
+      stream.on('error', (error) => {
+        reject(error);
+      });
+    });
+  }
+
+  // 判断是否为压缩文件
+  private isCompressedFile(filename: string): boolean {
+    const compressedExtensions = [
+      '.zip',
+      '.tar',
+      '.tar.gz',
+      '.tgz',
+      '.rar',
+      '.7z',
+    ];
+    const ext = path.extname(filename).toLowerCase();
+    return compressedExtensions.includes(ext);
+  }
+
+  // 调用解压缩微服务解压缩文件
+  private async decompressFile(
+    filePath: string,
+    resourceId: string,
+    decompressDir: string,
+    filename: string,
+  ): Promise<any> {
+    try {
+      // 调用解压缩微服务
+      const result = await this.decompressClient.send('decompress', {
+        filePath,
+        decompressDir,
+        resourceId,
+        resourceType: 'UNKNOWN', // 可以根据实际情况从参数中获取
+      });
+
+      return result;
+    } catch (error) {
+      console.error('解压缩服务调用失败:', error);
+      // 解压缩失败不影响主流程，返回null
+      return null;
+    }
+  }
+}

@@ -1,0 +1,175 @@
+version: '3.8'
+
+services:
+  # 解压缩微服务
+  decompress-microservice:
+    build: ./decompress-microservice
+    container_name: decompress-microservice
+    ports:
+      - "7777:7777"
+    restart: always
+    # 挂载共享目录用于文件解压缩
+    volumes:
+      - decompress_data:/app/decompress
+
+  # 主应用服务
+  app:
+    build: .
+    container_name: algorithm-platform-service
+    ports:
+      - "9000:9000"
+    environment:
+      - RUNNING_ENV=dev
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USERNAME=root
+      - DB_PASSWORD=chance..
+      - DB_DATABASE=algorithm_platform
+    # environment:
+    #   - RUNNING_ENV=prod
+    #   - REDIS_HOST=redis
+    #   - REDIS_PORT=6379
+    #   - DB_HOST=mysql
+    #   - DB_PORT=3306
+    #   - DB_USERNAME=root
+    #   - DB_PASSWORD=chance..
+    #   - DB_DATABASE=algorithm_platform
+    depends_on:
+      - mysql
+      - redis
+    restart: always
+    volumes:
+      - ./logs:/app/logs
+
+  mysql:
+    image: mysql:8.0
+    container_name: algorithm-platform-mysql
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=chance..
+      - MYSQL_DATABASE=algorithm_platform
+    restart: always
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database_schema.sql:/docker-entrypoint-initdb.d/001_schema.sql
+      - ./database_menu.sql:/docker-entrypoint-initdb.d/002_menu.sql
+    command:
+      - --default-authentication-plugin=mysql_native_password
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --max_connections=1000
+      - --wait_timeout=28800
+      - --interactive_timeout=28800
+
+  redis:
+    image: redis:7.0-alpine
+    container_name: algorithm-platform-redis
+    ports:
+      - "6379:6379"
+    restart: always
+    volumes:
+      - redis_data:/data
+    command:
+      - --appendonly yes
+      - --requirepass your_redis_password_here
+      - --maxmemory 512mb
+      - --maxmemory-policy allkeys-lru
+
+  # prometheus:
+  #   image: prom/prometheus:latest
+  #   container_name: algorithm-platform-prometheus
+  #   ports:
+  #     - "9090:9090"
+  #   restart: always
+  #   volumes:
+  #     - ./prometheus.yml:/etc/prometheus/prometheus.yml
+  #     - prometheus_data:/prometheus
+  #   command:
+  #     - '--config.file=/etc/prometheus/prometheus.yml'
+  #     - '--storage.tsdb.path=/prometheus'
+  #     - '--web.console.libraries=/etc/prometheus/console_libraries'
+  #     - '--web.console.templates=/etc/prometheus/consoles'
+  #     - '--web.enable-lifecycle'
+  #   depends_on:
+  #     - app
+
+  # grafana:
+  #   image: grafana/grafana:latest
+  #   container_name: algorithm-platform-grafana
+  #   ports:
+  #     - "3000:3000"
+  #   restart: always
+  #   volumes:
+  #     - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+  #     - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+  #     - grafana_data:/var/lib/grafana
+  #   environment:
+  #     - GF_SECURITY_ADMIN_PASSWORD=admin
+  #     - GF_SECURITY_ADMIN_USER=admin
+  #   depends_on:
+  #     - prometheus
+  #   networks:
+  #     - algorithm-platform-network
+
+  # Redis Exporter - 监控Redis性能
+  # redis_exporter:
+  #   image: oliver006/redis_exporter:latest
+  #   container_name: algorithm-platform-redis-exporter
+  #   ports:
+  #     - "9121:9121"
+  #   depends_on:
+  #     - redis
+  #   environment:
+  #     - REDIS_ADDR=redis://redis:6379
+  #     - REDIS_PASSWORD=
+  #   networks:
+  #     - algorithm-platform-network
+
+  # MySQL Exporter - 监控MySQL数据库
+  # mysql_exporter:
+  #   image: prom/mysqld-exporter:latest
+  #   container_name: algorithm-platform-mysql-exporter
+  #   ports:
+  #     - "9104:9104"
+  #   depends_on:
+  #     - mysql
+  #   environment:
+  #     - DATA_SOURCE_NAME=root:chance..@(mysql:3306)/algorithm_platform
+  #   networks:
+  #     - algorithm-platform-network
+
+  # Node Exporter - 监控主机资源
+  # node_exporter:
+  #   image: prom/node-exporter:latest
+  #   container_name: algorithm-platform-node-exporter
+  #   ports:
+  #     - "9100:9100"
+  #   volumes:
+  #     - /proc:/host/proc:ro
+  #     - /sys:/host/sys:ro
+  #     - /:/rootfs:ro
+  #   command:
+  #     - '--path.procfs=/host/proc'
+  #     - '--path.rootfs=/rootfs'
+  #     - '--path.sysfs=/host/sys'
+  #     - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
+  #   networks:
+  #     - algorithm-platform-network
+
+volumes:
+  mysql_data:
+    driver: local
+  redis_data:
+    driver: local
+  decompress_data:
+    driver: local
+  # prometheus_data:
+  #   driver: local
+  # grafana_data:
+
+networks:
+  algorithm-platform-network:
+    driver: bridge

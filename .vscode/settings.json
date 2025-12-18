@@ -1,0 +1,25 @@
+{
+  "cSpell.words": [
+    "ACCESSKEY",
+    "alertmanager",
+    "alertmanagers",
+    "aliyun",
+    "autorestart",
+    "datasource",
+    "datetime",
+    "flushall",
+    "hget",
+    "hgetall",
+    "hset",
+    "ldsw",
+    "liquanxi",
+    "metatype",
+    "Minio",
+    "minioadmin",
+    "SECRETKEY",
+    "typeorm",
+    "uuidv",
+    "willsoto",
+    "ZREMRANGEBYSCORE"
+  ]
+}
