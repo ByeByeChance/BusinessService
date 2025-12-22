@@ -1,5 +1,5 @@
 import { ToolsService } from '@src/plugin/tools/tools.service';
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { FindOperator, ILike, LessThanOrEqual, MoreThanOrEqual, Not, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { PageEnum } from '@src/enums/page.enum';
@@ -72,7 +72,18 @@ export class UserService {
       select: ['id'],
     });
     if (userEntity?.id) {
-      throw new HttpException(`用户已存在`, HttpStatus.BAD_REQUEST);
+      throw new BadRequestException(`用户已存在`);
+    }
+    if (req.roleId) {
+      const roleEntity: Pick<UserEntity, 'id'> | null = await this.userRepository.findOne({
+        where: {
+          id: req.roleId,
+        },
+        select: ['id'],
+      });
+      if (!roleEntity?.id) {
+        throw new BadRequestException(`角色不存在`);
+      }
     }
     // 默认密码加密
     const password = await this.toolsService.makePassword(req.password);
@@ -83,7 +94,6 @@ export class UserService {
       email: req.email,
       status: req.status,
       roleId: req.roleId,
-      lastLoginDate: new Date(),
     });
     await this.userRepository.save(data);
     return '创建成功';
@@ -100,7 +110,7 @@ export class UserService {
       where: { id },
     });
     if (!userEntity?.id) {
-      throw new HttpException(`用户不存在`, HttpStatus.BAD_REQUEST);
+      throw new BadRequestException(`用户不存在`);
     }
 
     // 更新用户信息
@@ -112,7 +122,7 @@ export class UserService {
         select: ['id'],
       });
       if (existingUser) {
-        throw new HttpException(`用户名已存在`, HttpStatus.BAD_REQUEST);
+        throw new BadRequestException(`用户名已存在`);
       }
       updateData.username = req.username;
     }
@@ -135,13 +145,22 @@ export class UserService {
    * @param {string} newPassword 新密码
    * @return {*}
    */
-  async updatePassword(id: string, oldPassword: string, newPassword: string): Promise<string> {
+  async updatePassword(
+    currentUser: UserEntity,
+    id: string,
+    oldPassword: string,
+    newPassword: string
+  ): Promise<string> {
+    // 检查登录用户是否与需要修改密码的用户一致
+    if (currentUser.id !== id) {
+      throw new BadRequestException(`登录帐号与需要修改密码的帐号不一致`);
+    }
     const userEntity: UserEntity | null = await this.userRepository.findOne({
       where: { id },
       select: ['id', 'password'],
     });
     if (!userEntity?.id) {
-      throw new HttpException(`用户不存在`, HttpStatus.BAD_REQUEST);
+      throw new BadRequestException(`用户不存在`);
     }
 
     // 验证旧密码
@@ -150,7 +169,7 @@ export class UserService {
       userEntity.password
     );
     if (!isPasswordValid) {
-      throw new HttpException(`旧密码错误`, HttpStatus.BAD_REQUEST);
+      throw new BadRequestException(`旧密码错误`);
     }
 
     // 更新新密码
@@ -174,7 +193,7 @@ export class UserService {
       where: { id },
     });
     if (!userEntity?.id) {
-      throw new HttpException(`用户不存在`, HttpStatus.BAD_REQUEST);
+      throw new BadRequestException(`用户不存在`);
     }
     const { affected } = await this.userRepository.softDelete(id);
     if (affected) {

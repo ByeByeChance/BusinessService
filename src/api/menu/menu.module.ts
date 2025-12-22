@@ -4,6 +4,8 @@ import { MenuController } from './menu.controller';
 import { MenuService } from './menu.service';
 import { MenuEntity } from './entities/menu.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { UserEntity } from '@src/api/user/entities/user.entity';
+import { RoleEntity } from '@src/api/role/entities/role.entity';
 
 @Module({
   imports: [
@@ -13,7 +15,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
         module: MenuModule,
       },
     ]),
-    TypeOrmModule.forFeature([MenuEntity]),
+    TypeOrmModule.forFeature([MenuEntity, UserEntity, RoleEntity]),
   ],
   controllers: [MenuController],
   providers: [MenuService],

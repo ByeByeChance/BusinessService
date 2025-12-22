@@ -24,12 +24,23 @@ export class HttpExceptionFilter implements ExceptionFilter {
     let resultCode = 1;
     let resultParams = {};
     try {
-      const { code, message, ...oth } = JSON.parse(exception.message);
-      resultMessage = message;
-      resultCode = code;
-      resultParams = oth;
-    } catch (e) {}
-
+      // 只有当异常消息是有效的JSON字符串时才尝试解析
+      if (
+        typeof exception.message === 'string' &&
+        (exception.message.startsWith('{') || exception.message.startsWith('['))
+      ) {
+        const { code, message, ...oth } = JSON.parse(exception.message);
+        resultMessage = message;
+        resultCode = code;
+        resultParams = oth;
+      }
+    } catch (e) {
+      // 如果解析失败，直接使用原始异常消息
+      this.loggerService.warn(
+        `Failed to parse exception message as JSON: ${e instanceof Error ? e.message : String(e)}`,
+        'HttpExceptionFilter'
+      );
+    }
     const errorResponse = {
       status,
       message: resultMessage,

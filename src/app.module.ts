@@ -92,7 +92,6 @@ import { HttpMetricsInterceptor } from './interceptors/http-metrics.interceptor'
       provide: APP_FILTER,
       useClass: HttpExceptionFilter,
     },
-
     // 全局接口成功返回数据封装
     {
       provide: APP_INTERCEPTOR,

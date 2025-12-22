@@ -1,6 +1,6 @@
 import { ImageService } from './image.service';
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { QueryImageDto } from './image-core/dto/image.query';
 import { ResultListVo } from '@src/shared/vo/result.vo';
 import { ImageVo } from './image-core/vo/image.vo';
@@ -10,8 +10,13 @@ import { ICurrentUserType } from '@src/decorators';
 import { QueryDebugRecordDto } from './image-debug/dto/debugRecord.query';
 import { DebugRecordDto } from './image-debug/dto/debugRecord.dto';
 import { DebugRecordVo } from './image-debug/vo/debugRecord.vo';
+import { AuthGuard } from '@src/guard/auth.guard';
+import { PermissionGuard } from '@src/guard/permission.guard';
+import { RequireRoles } from '@src/decorators/permission.decorator';
 
 @ApiTags('镜像模块')
+@ApiBearerAuth()
+@UseGuards(AuthGuard, PermissionGuard)
 @Controller('imageController')
 export class ImageController {
   constructor(private readonly imageService: ImageService) {}
@@ -29,6 +34,7 @@ export class ImageController {
     return await this.imageService.createImage(req, user);
   }
 
+  @RequireRoles('admin')
   @Post('deleteImageById')
   async deleteImageByIdApi(@Body() req: { id: string }): Promise<string> {
     return await this.imageService.deleteImageById(req.id);

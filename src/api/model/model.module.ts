@@ -5,6 +5,7 @@ import { ModelCoreModule } from './model-core/model-core.module';
 import { ModelTrainingModule } from './model-training/model-training.module';
 import { ModelEvalModule } from './model-eval/model-eval.module';
 import { RouterModule } from '@nestjs/core';
+import { UserModule } from '../user/user.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { RouterModule } from '@nestjs/core';
     ModelCoreModule,
     ModelTrainingModule,
     ModelEvalModule,
+    UserModule,
   ],
   controllers: [ModelController],
   providers: [ModelService],

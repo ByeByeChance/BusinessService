@@ -16,10 +16,10 @@ export class UserDto {
   @IsEmail()
   email?: string;
 
-  @ApiProperty({ description: '账号状态', required: false, default: 1 })
+  @ApiProperty({ description: '账号状态', required: true, default: 1 })
   @IsInt({ message: '账号状态只能为数字' })
   status!: number;
 
-  @ApiProperty({ description: '角色ID', required: true, default: '' })
+  @ApiProperty({ description: '角色ID', required: false, default: '' })
   roleId?: string;
 }

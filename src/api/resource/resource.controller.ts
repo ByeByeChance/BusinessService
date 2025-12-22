@@ -144,7 +144,6 @@ export class ResourceController {
   }
 
   @ApiOperation({ summary: '获取资源列表' })
-  @RequireRoles('admin')
   @Get('getResourceList')
   async getResourceList(
     @Query() queryResourceDto: QueryResourceDto
@@ -169,6 +168,7 @@ export class ResourceController {
   }
 
   @ApiOperation({ summary: '删除资源' })
+  @RequireRoles('admin')
   @Post('deleteResource')
   async deleteResource(@Body() req: { id: string }): Promise<ResultDataVo> {
     await this.resourceService.deleteResource(req.id);

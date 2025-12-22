@@ -1,5 +1,5 @@
-import { Controller, Get, Post, Body, Query } from '@nestjs/common';
-import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { Controller, Get, Post, Body, Query, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { ModelService } from './model.service';
 import { ResultListVo } from '@src/shared/vo/result.vo';
 import { ModelVo } from './model-core/vo/model.vo';
@@ -11,8 +11,13 @@ import { TrainingRecordDto } from './model-training/dto/trainingRecord.dto';
 import { EvalRecordVo } from './model-eval/vo/evalRecord.vo';
 import { QueryEvalRecordDto } from './model-eval/dto/evalRecord.query';
 import { EvalRecordDto } from './model-eval/dto/evalRecord.dto';
+import { AuthGuard } from '@src/guard/auth.guard';
+import { PermissionGuard } from '@src/guard/permission.guard';
+import { RequireRoles } from '@src/decorators/permission.decorator';
 
 @ApiTags('模型管理')
+@ApiBearerAuth()
+@UseGuards(AuthGuard, PermissionGuard)
 @Controller('modelController')
 export class ModelController {
   constructor(private readonly modelService: ModelService) {}
@@ -30,6 +35,7 @@ export class ModelController {
   }
 
   @ApiOperation({ summary: '根据模型id删除模型' })
+  @RequireRoles('admin')
   @Post('deleteModelById')
   async deleteModelById(@Body() req: { id: string }): Promise<string> {
     return this.modelService.deleteModelById(req.id);

@@ -1,18 +1,23 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { FindOperator, ILike, Repository, SelectQueryBuilder } from 'typeorm';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { Repository, SelectQueryBuilder } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import { PageEnum } from '@src/enums/page.enum';
 import { MenuItemVo } from './vo/menu.vo';
 import { ResultListVo } from '@src/shared/vo/result.vo';
-import { QueryMenuDto } from './dto/menu.query';
 import { MenuEntity } from './entities/menu.entity';
 import { MenuDto } from './dto/menu.dto';
+import { ICurrentUserType } from '@src/decorators';
+import { UserEntity } from '../user/entities/user.entity';
+import { RoleEntity } from '../role/entities/role.entity';
 
 @Injectable()
 export class MenuService {
   constructor(
     @InjectRepository(MenuEntity)
-    private readonly MenuRepository: Repository<MenuEntity>
+    private readonly MenuRepository: Repository<MenuEntity>,
+    @InjectRepository(UserEntity)
+    private readonly UserRepository: Repository<UserEntity>,
+    @InjectRepository(RoleEntity)
+    private readonly RoleRepository: Repository<RoleEntity>
   ) {}
 
   /**
@@ -20,22 +25,33 @@ export class MenuService {
    * @param {MenuDto} queryOption
    * @return {*}
    */
-  async getMenuList(queryOption: QueryMenuDto): Promise<ResultListVo<MenuItemVo>> {
-    const { title, path, current, pageSize } = queryOption;
-    const query: Record<string, FindOperator<string>> = {
-      ...(title && { title: ILike(`%${title}%`) }),
-      ...(path && { path: ILike(`%${path}%`) }),
-    };
-
-    const total = await this.MenuRepository.createQueryBuilder('menu').where([query]).getCount();
-    const queryBuilder = this.queryMenuBuilder();
-    const data = await queryBuilder.where([query]).offset(0).limit(1000).getMany();
+  async getMenuList(user: ICurrentUserType): Promise<ResultListVo<MenuItemVo>> {
+    // 检查用户是否存在
+    const userEntity = await this.UserRepository.findOne({
+      where: { id: user.id },
+    });
+    if (!userEntity?.roleId) {
+      throw new BadRequestException(`用户不存在或未分配角色`);
+    }
+    const roleEntity = await this.RoleRepository.findOne({
+      where: { id: userEntity.roleId },
+      relations: ['menus'],
+    });
+    if (!roleEntity) {
+      throw new BadRequestException(`角色不存在`);
+    }
+    const menus = roleEntity.name === 'admin' ? await this.getAllMenu() : roleEntity.menus || [];
     return {
-      list: this.createMenuMethod(data),
-      total,
-      current: current || PageEnum.PAGE_NUMBER,
-      pageSize: pageSize || PageEnum.PAGE_SIZE,
+      list: this.createMenuMethod(menus),
+      total: menus.length,
+      current: 1,
+      pageSize: menus.length,
     };
+  }
+
+  async getAllMenu(): Promise<MenuEntity[]> {
+    const data = await this.queryMenuBuilder().offset(0).limit(10000).getMany();
+    return data;
   }
 
   /**
@@ -77,14 +93,14 @@ export class MenuService {
   async updateMenu(req: MenuDto): Promise<string> {
     // 检查id是否存在且有效
     if (!req.id) {
-      throw new HttpException(`菜单ID不能为空`, HttpStatus.BAD_REQUEST);
+      throw new BadRequestException(`菜单ID不能为空`);
     }
 
     const MenuEntity: MenuEntity | null = await this.MenuRepository.findOne({
       where: { id: req.id },
     });
     if (!MenuEntity?.id) {
-      throw new HttpException(`菜单不存在`, HttpStatus.BAD_REQUEST);
+      throw new BadRequestException(`菜单不存在`);
     }
     await this.MenuRepository.update(
       { id: req.id },
@@ -105,7 +121,6 @@ export class MenuService {
         permission: req.permission || '',
         type: req.type || 'menu',
         sort: req.sort || 0,
-        updatedTime: +new Date(),
       }
     );
     return '更新成功';
@@ -121,7 +136,7 @@ export class MenuService {
       where: { id },
     });
     if (!MenuEntity?.id) {
-      throw new HttpException(`菜单不存在`, HttpStatus.BAD_REQUEST);
+      throw new BadRequestException(`菜单不存在`);
     }
     const { affected } = await this.MenuRepository.softDelete(id);
     if (affected) {
@@ -133,7 +148,9 @@ export class MenuService {
 
   // 内部查询方法
   private queryMenuBuilder(): SelectQueryBuilder<MenuEntity> {
-    const queryBuilder = this.MenuRepository.createQueryBuilder('menu');
+    const queryBuilder = this.MenuRepository.createQueryBuilder('menu').where('menu.type = :type', {
+      type: 'menu',
+    });
 
     queryBuilder.select([
       'menu.id',

@@ -1,7 +1,5 @@
-import { Body, Controller, Delete, Get, Param, Post, Query } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
-// import { CurrentUser } from '@src/decorators';
-// import { ICurrentUserType } from '@src/decorators';
+import { Body, Controller, Delete, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ResultListVo } from '@src/shared/vo/result.vo';
 import { SampleService } from './sample.service';
 import { QuerySampleGroupDto } from './dto/sampleGroup.query';
@@ -10,8 +8,13 @@ import { SampleGroupDto } from './dto/sampleGroup.dto';
 import { SampleGroupItemVo } from './vo/sampleGroup.vo';
 import { SampleItemVo } from './vo/sample.vo';
 import { CurrentUser, ICurrentUserType } from '@src/decorators';
+import { PermissionGuard } from '@src/guard/permission.guard';
+import { RequireRoles } from '@src/decorators/permission.decorator';
+import { AuthGuard } from '@src/guard/auth.guard';
 
 @ApiTags('样本管理')
+@UseGuards(AuthGuard, PermissionGuard)
+@ApiBearerAuth()
 @Controller('sampleController')
 export class SampleController {
   constructor(private readonly sampleService: SampleService) {}
@@ -35,6 +38,7 @@ export class SampleController {
   }
 
   @ApiOperation({ summary: '删除样本分组' })
+  @RequireRoles('admin')
   @Delete('deleteSampleGroup/:id')
   async deleteSampleGroup(@Param('id') id: string): Promise<string> {
     return this.sampleService.deleteSampleGroup(id);
@@ -47,6 +51,7 @@ export class SampleController {
   }
 
   @ApiOperation({ summary: '删除样本' })
+  @RequireRoles('admin')
   @Delete('deleteSample/:id')
   async deleteSample(@Param('id') id: string): Promise<string> {
     return this.sampleService.deleteSample(id);

@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { LoginDto, LogoutDto } from './dto/login.dto';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -108,10 +108,10 @@ export class LoginService {
           lastLoginDate: new Date(),
         });
       } else {
-        throw new HttpException(`密码错误`, HttpStatus.BAD_REQUEST);
+        throw new BadRequestException(`密码错误`);
       }
     } else {
-      throw new HttpException(`用户不存在`, HttpStatus.BAD_REQUEST);
+      throw new BadRequestException(`用户不存在`);
     }
     return data;
   }
@@ -144,18 +144,12 @@ export class LoginService {
     });
 
     if (!accessTokenEntity) {
-      throw new HttpException(
-        JSON.stringify({ code: 10035, message: '刷新令牌无效' }),
-        HttpStatus.OK
-      );
+      throw new UnauthorizedException('刷新令牌无效');
     }
 
     // 检查refreshToken是否过期
     if (dayjs().isAfter(dayjs(accessTokenEntity.expirationTime))) {
-      throw new HttpException(
-        JSON.stringify({ code: 10036, message: '刷新令牌已过期' }),
-        HttpStatus.OK
-      );
+      throw new UnauthorizedException('刷新令牌已过期');
     }
 
     // 获取用户信息
@@ -164,10 +158,7 @@ export class LoginService {
     });
 
     if (!userEntity) {
-      throw new HttpException(
-        JSON.stringify({ code: 10037, message: '用户不存在' }),
-        HttpStatus.OK
-      );
+      throw new UnauthorizedException('用户不存在');
     }
 
     // 生成新的token和refreshToken

@@ -110,6 +110,7 @@ export class MenuEntity extends SharedEntity {
     name: 'permission',
     comment: '权限标识',
     nullable: true,
+    default: 'admin',
   })
   permission?: string;
 

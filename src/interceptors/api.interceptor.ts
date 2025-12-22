@@ -1,11 +1,4 @@
-import {
-  CallHandler,
-  ExecutionContext,
-  // HttpException,
-  // HttpStatus,
-  Injectable,
-  NestInterceptor,
-} from '@nestjs/common';
+import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
 // import { LoginTokenDataVo } from '@src/api/login/vo/login.vo';
 // import { AccountTypeEnum } from '@src/enums/account.type.enum';
 import { Observable } from 'rxjs';
@@ -13,7 +6,7 @@ import { Observable } from 'rxjs';
 @Injectable()
 export class ApiInterceptor implements NestInterceptor {
   // 可以直接访问的
-  private readonly whiteUrlList: string[] = [];
+  private readonly whiteUrlList: string[] = ['/login'];
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest();
     /**当前请求方式 */
@@ -26,7 +19,7 @@ export class ApiInterceptor implements NestInterceptor {
       .replace('/api/v1/admin', '') // 去除双//
       .replace(/\?.*/, '') // 去除最后一个
       .replace(/(\d+)$/, '*');
-    console.log(newUrl, '-------------');
+    console.log('newUrl: ', newUrl, '-------------');
     if (this.whiteUrlList.includes(newUrl)) {
       return next.handle();
     }
