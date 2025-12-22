@@ -3,10 +3,10 @@ import { IsNotEmpty } from 'class-validator';
 
 export class MenuDto {
   @ApiProperty({ description: 'id', default: '' })
-  id?: string;
+  id!: string;
 
   @ApiProperty({ description: '父级id', default: '' })
-  parentId!: string;
+  parentId?: string;
 
   @ApiProperty({ description: '菜单路径', default: '/home' })
   path!: string;
@@ -48,7 +48,7 @@ export class MenuDto {
   @ApiProperty({ description: '权限标识', default: '' })
   permission?: string;
 
-  @ApiProperty({ description: '菜单类型', default: 'menu', enum: ['menu', 'button'] })
+  @ApiProperty({ description: '菜单类型', default: 'menu', enum: ['menu', 'button', 'api'] })
   type?: string;
 
   @ApiProperty({ description: '排序', default: 0 })

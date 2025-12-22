@@ -64,7 +64,7 @@ export class MenuService {
     const data = this.MenuRepository.create({
       // 将数字类型转换为字符串，符合UUID要求
       id: req.id ? req.id : undefined,
-      parentId: req.parentId ? req.parentId.toString() : undefined,
+      parentId: req.parentId ? req.parentId : undefined,
       name: req.name,
       path: req.path || '',
       component: req.component || '',
@@ -147,9 +147,9 @@ export class MenuService {
   }
 
   // 内部查询方法
-  private queryMenuBuilder(): SelectQueryBuilder<MenuEntity> {
+  private queryMenuBuilder(menuType = 'menu'): SelectQueryBuilder<MenuEntity> {
     const queryBuilder = this.MenuRepository.createQueryBuilder('menu').where('menu.type = :type', {
-      type: 'menu',
+      type: menuType,
     });
 
     queryBuilder.select([
@@ -192,7 +192,7 @@ export class MenuService {
         isFull: menuEntity.isFull === 1,
         isAffix: menuEntity.isAffix === 1,
         isKeepAlive: menuEntity.isKeepAlive === 1,
-        permission: menuEntity.permission,
+        // permission: menuEntity.permission,
         type: menuEntity.type,
         sort: menuEntity.sort,
       },

@@ -25,7 +25,7 @@ import {
 import { ResultDataVo, ResultListVo } from '@src/shared/vo/result.vo';
 import { AuthGuard } from '@src/guard/auth.guard';
 import { PermissionGuard } from '@src/guard/permission.guard';
-import { RequireRoles } from '@src/decorators/permission.decorator';
+import { RequirePermissions } from '@src/decorators/permission.decorator';
 
 @ApiTags('资源管理模块')
 @Controller('resourceController')
@@ -168,7 +168,7 @@ export class ResourceController {
   }
 
   @ApiOperation({ summary: '删除资源' })
-  @RequireRoles('admin')
+  @RequirePermissions('resource:delete')
   @Post('deleteResource')
   async deleteResource(@Body() req: { id: string }): Promise<ResultDataVo> {
     await this.resourceService.deleteResource(req.id);

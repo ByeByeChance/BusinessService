@@ -7,11 +7,11 @@ export class MenuEntity extends SharedEntity {
   @Column({
     type: 'varchar',
     name: 'parentId',
-    nullable: false,
+    nullable: true,
     length: 36,
-    comment: '父级id (UUID)',
+    comment: '父级id',
   })
-  parentId!: string;
+  parentId?: string;
 
   @Column({
     type: 'varchar',
@@ -110,7 +110,6 @@ export class MenuEntity extends SharedEntity {
     name: 'permission',
     comment: '权限标识',
     nullable: true,
-    default: 'admin',
   })
   permission?: string;
 
@@ -118,7 +117,7 @@ export class MenuEntity extends SharedEntity {
     type: 'varchar',
     length: 20,
     name: 'type',
-    comment: '菜单类型(directory:目录,menu:菜单,button:按钮)',
+    comment: '菜单类型(directory:目录,menu:菜单,button:按钮,api:接口)',
     default: 'menu',
   })
   type!: string;

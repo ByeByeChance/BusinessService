@@ -9,7 +9,7 @@ import { SampleGroupItemVo } from './vo/sampleGroup.vo';
 import { SampleItemVo } from './vo/sample.vo';
 import { CurrentUser, ICurrentUserType } from '@src/decorators';
 import { PermissionGuard } from '@src/guard/permission.guard';
-import { RequireRoles } from '@src/decorators/permission.decorator';
+import { RequirePermissions } from '@src/decorators/permission.decorator';
 import { AuthGuard } from '@src/guard/auth.guard';
 
 @ApiTags('样本管理')
@@ -38,7 +38,7 @@ export class SampleController {
   }
 
   @ApiOperation({ summary: '删除样本分组' })
-  @RequireRoles('admin')
+  @RequirePermissions('sampleGroup:delete')
   @Delete('deleteSampleGroup/:id')
   async deleteSampleGroup(@Param('id') id: string): Promise<string> {
     return this.sampleService.deleteSampleGroup(id);
@@ -51,7 +51,7 @@ export class SampleController {
   }
 
   @ApiOperation({ summary: '删除样本' })
-  @RequireRoles('admin')
+  @RequirePermissions('sample:delete')
   @Delete('deleteSample/:id')
   async deleteSample(@Param('id') id: string): Promise<string> {
     return this.sampleService.deleteSample(id);

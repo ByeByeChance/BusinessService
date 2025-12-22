@@ -7,15 +7,17 @@ import { UserVo } from './vo/user.vo';
 import { QueryUserDto } from './dto/user.query';
 import { UserEntity } from './entities/user.entity';
 import { UserDto } from './dto/user.dto';
-
 import { ResultListVo } from '@src/shared/vo/result.vo';
+import { RoleEntity } from '@src/api/role/entities/role.entity';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
-    private readonly toolsService: ToolsService
+    private readonly toolsService: ToolsService,
+    @InjectRepository(RoleEntity)
+    private readonly roleRepository: Repository<RoleEntity>
   ) {}
 
   /**
@@ -75,7 +77,7 @@ export class UserService {
       throw new BadRequestException(`用户已存在`);
     }
     if (req.roleId) {
-      const roleEntity: Pick<UserEntity, 'id'> | null = await this.userRepository.findOne({
+      const roleEntity: Pick<RoleEntity, 'id'> | null = await this.roleRepository.findOne({
         where: {
           id: req.roleId,
         },

@@ -13,7 +13,7 @@ import { QueryEvalRecordDto } from './model-eval/dto/evalRecord.query';
 import { EvalRecordDto } from './model-eval/dto/evalRecord.dto';
 import { AuthGuard } from '@src/guard/auth.guard';
 import { PermissionGuard } from '@src/guard/permission.guard';
-import { RequireRoles } from '@src/decorators/permission.decorator';
+import { RequirePermissions } from '@src/decorators/permission.decorator';
 
 @ApiTags('模型管理')
 @ApiBearerAuth()
@@ -35,7 +35,7 @@ export class ModelController {
   }
 
   @ApiOperation({ summary: '根据模型id删除模型' })
-  @RequireRoles('admin')
+  @RequirePermissions('model:delete')
   @Post('deleteModelById')
   async deleteModelById(@Body() req: { id: string }): Promise<string> {
     return this.modelService.deleteModelById(req.id);

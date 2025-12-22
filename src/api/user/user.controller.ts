@@ -7,7 +7,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ResultListVo } from '@src/shared/vo/result.vo';
 import { AuthGuard } from '@src/guard/auth.guard';
 import { PermissionGuard } from '@src/guard/permission.guard';
-import { RequireRoles } from '@src/decorators/permission.decorator';
+import { RequirePermissions } from '@src/decorators/permission.decorator';
 import { CurrentUser } from '@src/decorators';
 import { UserEntity } from './entities/user.entity';
 
@@ -26,7 +26,7 @@ export class UserController {
 
   @ApiOperation({ summary: '添加用户' })
   @UseGuards(PermissionGuard)
-  @RequireRoles('admin')
+  @RequirePermissions('user:add')
   @Post('addUser')
   async addUserApi(@Body() req: UserDto): Promise<string> {
     return await this.userService.addUser(req);
@@ -34,7 +34,7 @@ export class UserController {
 
   @ApiOperation({ summary: '根据用户id删除用户' })
   @UseGuards(PermissionGuard)
-  @RequireRoles('admin')
+  @RequirePermissions('user:delete')
   @Post('deleteUserById')
   async deleteUserByIdApi(@Body() req: { id: string }): Promise<string> {
     return await this.userService.deleteUserById(req.id);

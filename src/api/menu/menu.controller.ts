@@ -6,7 +6,7 @@ import { MenuDto } from './dto/menu.dto';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '@src/guard/auth.guard';
 import { PermissionGuard } from '@src/guard/permission.guard';
-import { RequireRoles } from '@src/decorators/permission.decorator';
+import { RequirePermissions } from '@src/decorators/permission.decorator';
 import { CurrentUser, ICurrentUserType } from '@src/decorators';
 
 @ApiTags('菜单模块')
@@ -23,21 +23,21 @@ export class MenuController {
   }
 
   @ApiOperation({ summary: '添加菜单' })
-  @RequireRoles('admin')
+  @RequirePermissions('menu:add')
   @Post('addMenu')
   async addMenuApi(@Body() req: MenuDto): Promise<string> {
     return await this.menuService.addMenu(req);
   }
 
   @ApiOperation({ summary: '更新菜单' })
-  @RequireRoles('admin')
+  @RequirePermissions('menu:update')
   @Post('updateMenu')
   async updateMenuApi(@Body() req: MenuDto): Promise<string> {
     return await this.menuService.updateMenu(req);
   }
 
   @ApiOperation({ summary: '根据菜单id删除菜单' })
-  @RequireRoles('admin')
+  @RequirePermissions('menu:delete')
   @Delete('deleteMenuById/:id')
   async deleteMenuByIdApi(@Param('id') id: string): Promise<string> {
     return await this.menuService.deleteMenuById(id);

@@ -7,7 +7,7 @@ import { ResultListVo } from '@src/shared/vo/result.vo';
 import { AlgorithmItem } from './vo/algorithm.vo';
 import { AuthGuard } from '@src/guard/auth.guard';
 import { PermissionGuard } from '@src/guard/permission.guard';
-import { RequireRoles } from '@src/decorators/permission.decorator';
+import { RequirePermissions } from '@src/decorators/permission.decorator';
 
 @ApiTags('算法模块')
 @Controller('/algorithmController')
@@ -30,7 +30,7 @@ export class AlgorithmController {
   }
 
   @ApiOperation({ summary: '根据算法id删除算法' })
-  @RequireRoles('admin')
+  @RequirePermissions('algorithm:delete')
   @Post('deleteAlgorithmById/:id')
   async deleteAlgorithmByIdApi(@Body() req: { id: string }): Promise<string> {
     return await this.algorithmService.deleteAlgorithmById(req.id);

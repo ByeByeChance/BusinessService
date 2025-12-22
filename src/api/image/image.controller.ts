@@ -12,7 +12,7 @@ import { DebugRecordDto } from './image-debug/dto/debugRecord.dto';
 import { DebugRecordVo } from './image-debug/vo/debugRecord.vo';
 import { AuthGuard } from '@src/guard/auth.guard';
 import { PermissionGuard } from '@src/guard/permission.guard';
-import { RequireRoles } from '@src/decorators/permission.decorator';
+import { RequirePermissions } from '@src/decorators/permission.decorator';
 
 @ApiTags('镜像模块')
 @ApiBearerAuth()
@@ -34,7 +34,7 @@ export class ImageController {
     return await this.imageService.createImage(req, user);
   }
 
-  @RequireRoles('admin')
+  @RequirePermissions('image:delete')
   @Post('deleteImageById')
   async deleteImageByIdApi(@Body() req: { id: string }): Promise<string> {
     return await this.imageService.deleteImageById(req.id);
