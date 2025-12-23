@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { BadRequestException, HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import {
   Repository,
   ILike,
@@ -17,13 +17,15 @@ import { ResultListVo } from '@src/shared/vo/result.vo';
 import { MenuEntity } from '@src/api/menu/entities/menu.entity';
 import { RoleQueryDto } from './dto/role.query';
 import { UserEntity } from '@src/api/user/entities/user.entity';
+import { CacheService } from '@src/shared/services/cache.service';
 
 @Injectable()
 export class RoleService {
   constructor(
     @InjectRepository(RoleEntity) private readonly roleRepository: Repository<RoleEntity>,
     @InjectRepository(MenuEntity) private readonly menuRepository: Repository<MenuEntity>,
-    @InjectRepository(UserEntity) private readonly userRepository: Repository<UserEntity>
+    @InjectRepository(UserEntity) private readonly userRepository: Repository<UserEntity>,
+    private readonly cacheService: CacheService
   ) {}
 
   /**
@@ -173,29 +175,51 @@ export class RoleService {
     };
   }
 
-  /**
-   * @Description: 分配菜单权限给角色
-   * @param {string} roleId
-   * @param {string[]} menuIds
-   * @return {*}
-   */
+  private async filterMenus(menuIds: string[]): Promise<{
+    insideMenus: MenuEntity[];
+    outsideMenuIds: string[];
+  }> {
+    const insideMenus = await this.menuRepository.findBy({ id: In(menuIds) });
+    const insideMenuIds = new Set(insideMenus.map((menu) => menu.id));
+    const outsideMenuIds = menuIds.filter((id) => !insideMenuIds.has(id));
+
+    return { insideMenus, outsideMenuIds };
+  }
+
+  // 在保存角色时使用乐观锁或事务处理并发更新
   async assignMenusToRole(roleId: string, menuIds: string[]): Promise<string> {
-    const role = await this.roleRepository.findOne({ where: { id: roleId } });
-    if (!role) {
-      throw new HttpException(`角色不存在`, HttpStatus.BAD_REQUEST);
-    }
+    // 使用事务确保数据一致性
+    return await this.roleRepository.manager.transaction(async (transactionalEntityManager) => {
+      const role = await transactionalEntityManager.findOne(RoleEntity, {
+        where: { id: roleId },
+      });
+      if (!role) {
+        throw new HttpException(`角色不存在`, HttpStatus.BAD_REQUEST);
+      }
 
-    // 获取所有要分配的菜单
-    const menus = await this.menuRepository.findBy({ id: In(menuIds) });
-    if (menus.length !== menuIds.length) {
-      throw new HttpException(`部分菜单不存在`, HttpStatus.BAD_REQUEST);
-    }
+      // 过滤菜单
+      const { insideMenus, outsideMenuIds } = await this.filterMenus(menuIds);
+      let msg = '';
+      if (outsideMenuIds.length > 0) {
+        msg += `, 部分菜单不存在: ${outsideMenuIds.join(', ')}`;
+      }
 
-    // 更新角色的菜单关联
-    role.menus = menus;
-    await this.roleRepository.save(role);
+      // 更新角色的菜单关联
+      role.menus = insideMenus;
+      await transactionalEntityManager.save(role);
 
-    return '菜单权限分配成功';
+      // 清除拥有该角色的所有用户的权限缓存
+      const users = await this.userRepository.find({
+        where: { roleId: roleId },
+        select: ['id'],
+      });
+
+      for (const user of users) {
+        await this.cacheService.clearUserPermissionCache(user.id);
+      }
+
+      return `菜单权限分配成功${msg}`;
+    });
   }
 
   /**
@@ -224,5 +248,46 @@ export class RoleService {
       'role.updatedTime',
     ]);
     return queryBuilder.orderBy('role.sort', 'ASC');
+  }
+
+  /**
+   * @Description: 更新角色权限
+   * @param {string} id
+   * @param {string[]} permissionIds
+   * @return {*}
+   */
+  async updateRolePermissions(id: string, permissionIds: string[]): Promise<string> {
+    // 检查角色是否存在
+    const roleEntity: RoleEntity | null = await this.roleRepository.findOne({
+      where: { id },
+    });
+
+    if (!roleEntity?.id) {
+      throw new BadRequestException(`角色不存在`);
+    }
+
+    // 检查权限ID是否存在
+    const menuEntities: MenuEntity[] = await this.menuRepository.findBy({ id: In(permissionIds) }); // 检查权限ID是否存在
+    if (menuEntities.length !== permissionIds.length) {
+      throw new BadRequestException(`部分菜单ID不存在`);
+    }
+
+    // 更新角色权限
+    const role = await this.roleRepository.findOne({ where: { id }, relations: ['menus'] });
+    if (!role) throw new BadRequestException(`角色不存在`);
+    role.menus = menuEntities;
+    await this.roleRepository.save(role);
+
+    // 清除所有拥有该角色的用户的权限缓存
+    const usersWithRole: UserEntity[] = await this.userRepository.find({
+      where: { roleId: id },
+      select: ['id'],
+    });
+
+    for (const user of usersWithRole) {
+      await this.cacheService.clearUserPermissionCache(user.id);
+    }
+
+    return '更新角色权限成功';
   }
 }

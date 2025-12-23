@@ -9,6 +9,7 @@ import { UserEntity } from './entities/user.entity';
 import { UserDto } from './dto/user.dto';
 import { ResultListVo } from '@src/shared/vo/result.vo';
 import { RoleEntity } from '@src/api/role/entities/role.entity';
+import { CacheService } from '@src/shared/services/cache.service';
 
 @Injectable()
 export class UserService {
@@ -17,7 +18,8 @@ export class UserService {
     private readonly userRepository: Repository<UserEntity>,
     private readonly toolsService: ToolsService,
     @InjectRepository(RoleEntity)
-    private readonly roleRepository: Repository<RoleEntity>
+    private readonly roleRepository: Repository<RoleEntity>,
+    private readonly cacheService: CacheService
   ) {}
 
   /**
@@ -131,6 +133,24 @@ export class UserService {
 
     if (req.email) updateData.email = req.email;
     if (req.status !== undefined) updateData.status = req.status;
+
+    // 检查角色是否变化
+    if (req.roleId !== undefined && req.roleId !== userEntity.roleId) {
+      // 验证角色是否存在
+      if (req.roleId) {
+        const roleEntity: Pick<RoleEntity, 'id'> | null = await this.roleRepository.findOne({
+          where: { id: req.roleId },
+          select: ['id'],
+        });
+        if (!roleEntity?.id) {
+          throw new BadRequestException(`角色不存在`);
+        }
+      }
+      updateData.roleId = req.roleId;
+
+      // 清除用户权限缓存
+      await this.cacheService.clearUserPermissionCache(id);
+    }
 
     const { affected } = await this.userRepository.update(id, updateData);
     if (affected) {

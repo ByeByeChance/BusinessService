@@ -8,6 +8,7 @@ import { MenuDto } from './dto/menu.dto';
 import { ICurrentUserType } from '@src/decorators';
 import { UserEntity } from '../user/entities/user.entity';
 import { RoleEntity } from '../role/entities/role.entity';
+import { CacheService } from '@src/shared/services/cache.service';
 
 @Injectable()
 export class MenuService {
@@ -17,7 +18,8 @@ export class MenuService {
     @InjectRepository(UserEntity)
     private readonly UserRepository: Repository<UserEntity>,
     @InjectRepository(RoleEntity)
-    private readonly RoleRepository: Repository<RoleEntity>
+    private readonly RoleRepository: Repository<RoleEntity>,
+    private readonly cacheService: CacheService
   ) {}
 
   /**
@@ -102,6 +104,11 @@ export class MenuService {
     if (!MenuEntity?.id) {
       throw new BadRequestException(`菜单不存在`);
     }
+
+    // 检查权限相关字段是否发生变化
+    const permissionChanged =
+      req.permission !== MenuEntity.permission || req.type !== MenuEntity.type;
+
     await this.MenuRepository.update(
       { id: req.id },
       {
@@ -123,6 +130,12 @@ export class MenuService {
         sort: req.sort || 0,
       }
     );
+
+    // 如果权限相关字段发生变化，清除所有关联了该菜单的用户的权限缓存
+    if (permissionChanged) {
+      await this.clearUserPermissionCacheByMenuId(req.id);
+    }
+
     return '更新成功';
   }
 
@@ -138,6 +151,10 @@ export class MenuService {
     if (!MenuEntity?.id) {
       throw new BadRequestException(`菜单不存在`);
     }
+
+    // 在删除菜单前，清除所有关联了该菜单的用户的权限缓存
+    await this.clearUserPermissionCacheByMenuId(id);
+
     const { affected } = await this.MenuRepository.softDelete(id);
     if (affected) {
       return '删除成功';
@@ -211,5 +228,27 @@ export class MenuService {
     }
 
     return newMenuList.sort((a, b) => (a.meta.sort || 0) - (b.meta.sort || 0));
+  }
+
+  /**
+   * @Description: 根据菜单ID清除所有拥有该菜单权限的用户的权限缓存
+   * @param {string} menuId
+   * @return {*}
+   */
+  private async clearUserPermissionCacheByMenuId(menuId: string): Promise<void> {
+    // 查找所有关联了该菜单的角色
+    const roles = await this.RoleRepository.find({
+      where: {},
+      relations: ['menus'],
+    });
+
+    const roleIdsWithMenu = roles
+      .filter((role) => role.menus.some((menu) => menu.id === menuId))
+      .map((role) => role.id);
+
+    if (roleIdsWithMenu.length > 0) {
+      // 使用CacheService清除这些角色下所有用户的权限缓存
+      await this.cacheService.clearRolesUsersPermissionCache(roleIdsWithMenu);
+    }
   }
 }

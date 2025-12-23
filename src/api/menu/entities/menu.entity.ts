@@ -19,7 +19,7 @@ export class MenuEntity extends SharedEntity {
     name: 'path',
     comment: '菜单路径',
   })
-  path!: string;
+  path?: string;
 
   @Column({
     type: 'varchar',
@@ -27,7 +27,7 @@ export class MenuEntity extends SharedEntity {
     name: 'name',
     comment: '菜单name',
   })
-  name!: string;
+  name?: string;
 
   @Column({
     type: 'varchar',
@@ -43,7 +43,7 @@ export class MenuEntity extends SharedEntity {
     name: 'redirect',
     comment: '重定向菜单路径',
   })
-  redirect!: string;
+  redirect?: string;
 
   @Column({
     type: 'varchar',
@@ -51,7 +51,7 @@ export class MenuEntity extends SharedEntity {
     name: 'icon',
     comment: '菜单图标',
   })
-  icon!: string;
+  icon?: string;
 
   @Column({
     type: 'varchar',
@@ -67,42 +67,42 @@ export class MenuEntity extends SharedEntity {
     name: 'isLink',
     comment: '是否外链',
   })
-  isLink!: string;
+  isLink?: string;
 
   @Column({
     type: 'int',
     name: 'isHide',
     comment: '是否隐藏',
   })
-  isHide!: number;
+  isHide?: number;
 
   @Column({
     type: 'int',
     name: 'isFull',
     comment: '是否全屏',
   })
-  isFull!: number;
+  isFull?: number;
 
   @Column({
     type: 'int',
     name: 'isAffix',
     comment: '是否在标签栏固定',
   })
-  isAffix!: number;
+  isAffix?: number;
 
   @Column({
     type: 'int',
     name: 'isKeepAlive',
     comment: '是否缓存页面',
   })
-  isKeepAlive!: number;
+  isKeepAlive?: number;
 
   @Column({
     type: 'int',
     name: 'sort',
     comment: '排序',
   })
-  sort!: number;
+  sort?: number;
 
   @Column({
     type: 'varchar',
