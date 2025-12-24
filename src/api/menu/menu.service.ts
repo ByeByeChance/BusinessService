@@ -31,6 +31,7 @@ export class MenuService {
     // 检查用户是否存在
     const userEntity = await this.UserRepository.findOne({
       where: { id: user.id },
+      select: ['id', 'roleId'],
     });
     if (!userEntity?.roleId) {
       throw new BadRequestException(`用户不存在或未分配角色`);
@@ -38,6 +39,7 @@ export class MenuService {
     const roleEntity = await this.RoleRepository.findOne({
       where: { id: userEntity.roleId },
       relations: ['menus'],
+      select: ['name', 'menus'],
     });
     if (!roleEntity) {
       throw new BadRequestException(`角色不存在`);
@@ -100,6 +102,7 @@ export class MenuService {
 
     const MenuEntity: MenuEntity | null = await this.MenuRepository.findOne({
       where: { id: req.id },
+      select: ['id', 'permission', 'type'],
     });
     if (!MenuEntity?.id) {
       throw new BadRequestException(`菜单不存在`);
@@ -147,6 +150,7 @@ export class MenuService {
   async deleteMenuById(id: string): Promise<string> {
     const MenuEntity: MenuEntity | null = await this.MenuRepository.findOne({
       where: { id },
+      select: ['id'],
     });
     if (!MenuEntity?.id) {
       throw new BadRequestException(`菜单不存在`);

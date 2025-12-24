@@ -77,7 +77,10 @@ export class RoleService {
    */
   async createRole(createRoleDto: CreateRoleDto): Promise<string> {
     // 检查角色名称是否已存在
-    const existingRole = await this.roleRepository.findOne({ where: { name: createRoleDto.name } });
+    const existingRole = await this.roleRepository.findOne({
+      where: { name: createRoleDto.name },
+      select: ['id'],
+    });
     if (existingRole) {
       throw new HttpException(`角色名称已存在`, HttpStatus.BAD_REQUEST);
     }
@@ -100,7 +103,7 @@ export class RoleService {
    * @return {*}
    */
   async updateRole(id: string, updateRoleDto: UpdateRoleDto): Promise<string> {
-    const role = await this.roleRepository.findOne({ where: { id } });
+    const role = await this.roleRepository.findOne({ where: { id }, select: ['id', 'name'] });
     if (!role) {
       throw new HttpException(`角色不存在`, HttpStatus.BAD_REQUEST);
     }
@@ -109,6 +112,7 @@ export class RoleService {
     if (updateRoleDto.name && updateRoleDto.name !== role.name) {
       const existingRole = await this.roleRepository.findOne({
         where: { name: updateRoleDto.name },
+        select: ['id'],
       });
       if (existingRole) {
         throw new HttpException(`角色名称已存在`, HttpStatus.BAD_REQUEST);
@@ -132,7 +136,7 @@ export class RoleService {
    * @return {*}
    */
   async deleteRole(id: string): Promise<string> {
-    const role = await this.roleRepository.findOne({ where: { id } });
+    const role = await this.roleRepository.findOne({ where: { id }, select: ['id'] });
     if (!role) {
       throw new HttpException(`角色不存在`, HttpStatus.BAD_REQUEST);
     }
@@ -260,6 +264,7 @@ export class RoleService {
     // 检查角色是否存在
     const roleEntity: RoleEntity | null = await this.roleRepository.findOne({
       where: { id },
+      select: ['id'],
     });
 
     if (!roleEntity?.id) {

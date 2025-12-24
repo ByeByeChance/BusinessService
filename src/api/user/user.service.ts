@@ -213,6 +213,7 @@ export class UserService {
   async deleteUserById(id: string): Promise<string> {
     const userEntity: UserEntity | null = await this.userRepository.findOne({
       where: { id },
+      select: ['id'],
     });
     if (!userEntity?.id) {
       throw new BadRequestException(`用户不存在`);
